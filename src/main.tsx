@@ -1,0 +1,121 @@
+import { useEffect, useMemo, useState } from 'react';
+import { openDB } from 'idb';
+import {
+  Archive, ArrowLeft, BarChart3, CalendarDays, Check, CheckCircle2, ChevronRight,
+  Clock3, Flame, History, Lightbulb, MoreHorizontal, Pencil, Plus, RotateCcw,
+  Sparkles, Target, Trash2, X, Zap
+} from 'lucide-react';
+import './styles.css';
+
+type GoalType = 'checkbox' | 'timed';
+type Log = { date: string; done: boolean; duration?: number; note?: string };
+type Goal = { id: string; title: string; description: string; type: GoalType; color: string; createdAt: string; archived: boolean; logs: Log[] };
+
+const palette = ['#ed294d', '#b83145', '#c9a45c', '#d04b5e', '#8f273b'];
+const today = () => new Date().toISOString().slice(0, 10);
+const formatDay = (iso: string) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${iso}T12:00:00`));
+const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const defaultGoals: Goal[] = [
+  { id: 'move', title: 'Morning movement', description: 'Start the day with energy', type: 'timed', color: palette[0], createdAt: today(), archived: false, logs: [] },
+  { id: 'read', title: 'Read 20 pages', description: 'A little progress, every day', type: 'checkbox', color: palette[1], createdAt: today(), archived: false, logs: [] },
+  { id: 'focus', title: 'Deep work block', description: 'Protect time for what matters', type: 'timed', color: palette[2], createdAt: today(), archived: false, logs: [] },
+];
+
+async function db() { return openDB('daymark-db', 1, { upgrade(database) { if (!database.objectStoreNames.contains('goals')) database.createObjectStore('goals', { keyPath: 'id' }); } }); }
+async function loadGoals(): Promise<Goal[]> { const database = await db(); const values = await database.getAll('goals') as Goal[]; return values.length ? values : defaultGoals; }
+async function saveGoals(goals: Goal[]) { const database = await db(); const tx = database.transaction('goals', 'readwrite'); await tx.store.clear(); await Promise.all(goals.map(goal => tx.store.put(goal))); await tx.done; }
+
+function stats(goal: Goal) {
+  const doneDates = new Set(goal.logs.filter(log => log.done).map(log => log.date));
+  let best = 0, run = 0;
+  const cursor = new Date(`${today()}T12:00:00`);
+  while (doneDates.has(cursor.toISOString().slice(0, 10))) { run++; cursor.setDate(cursor.getDate() - 1); }
+  const dates = [...doneDates].sort();
+  let streak = 0;
+  dates.forEach((date, index) => { streak = index && (new Date(`${date}T12:00:00`).getTime() - new Date(`${dates[index - 1]}T12:00:00`).getTime() === 86400000) ? streak + 1 : 1; best = Math.max(best, streak); });
+  return { current: run, best, total: goal.logs.reduce((sum, log) => sum + (log.duration || 0), 0) };
+}
+function getLog(goal: Goal, date = today()) { return goal.logs.find(log => log.date === date); }
+function initials(text: string) { return text.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase(); }
+
+function App() {
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [view, setView] = useState<'today' | 'insights' | 'archived'>('today');
+  const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
+  const [editor, setEditor] = useState<{ mode: 'add' | 'edit'; goal?: Goal } | null>(null);
+  const [toast, setToast] = useState('');
+  useEffect(() => { loadGoals().then(data => { setGoals(data); setLoaded(true); }); }, []);
+  useEffect(() => { if (loaded) saveGoals(goals); }, [goals, loaded]);
+  useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 2400); return () => clearTimeout(timer); }, [toast]);
+
+  const active = goals.filter(goal => !goal.archived);
+  const archived = goals.filter(goal => goal.archived);
+  const doneCount = active.filter(goal => getLog(goal)?.done).length;
+  const progress = active.length ? Math.round(doneCount / active.length * 100) : 0;
+  const updateGoal = (id: string, update: Partial<Goal>) => setGoals(current => current.map(goal => goal.id === id ? { ...goal, ...update } : goal));
+  const updateLog = (goal: Goal, patch: Partial<Log>) => {
+    const date = today(); const old = getLog(goal, date) || { date, done: false };
+    const logs = [...goal.logs.filter(log => log.date !== date), { ...old, ...patch }].filter(log => log.done || (log.duration || 0) > 0 || log.note);
+    updateGoal(goal.id, { logs }); setToast(patch.done ? 'Nice work — today is marked complete.' : 'Today updated.');
+  };
+  const addGoal = (data: Omit<Goal, 'id' | 'createdAt' | 'archived' | 'logs'>) => { setGoals(current => [...current, { ...data, id: uid(), createdAt: today(), archived: false, logs: [] }]); setEditor(null); setToast('Goal added to your day.'); };
+  const editGoal = (data: Omit<Goal, 'id' | 'createdAt' | 'archived' | 'logs'>) => { if (!editor?.goal) return; updateGoal(editor.goal.id, data); setEditor(null); setToast('Goal updated.'); };
+  const archiveGoal = (goal: Goal) => { updateGoal(goal.id, { archived: !goal.archived }); setActiveGoal(null); setToast(goal.archived ? 'Goal restored.' : 'Goal archived.'); };
+
+  if (!loaded) return <div className="loading"><div className="brand-mark"><Target size={22} /></div><span>Loading your day…</span></div>;
+  return <div className="app-shell">
+    <header className="topbar"><div className="brand"><div className="brand-mark"><Target size={21} strokeWidth={2.5} /></div><span>daymark</span></div><div className="topbar-date"><CalendarDays size={16} /> {formatDay(today())}</div><div className="avatar">BS</div></header>
+    <main className="layout">
+      <aside className="sidebar">
+        <div className="hello"><p className="eyebrow">SATURDAY, SEPTEMBER 5</p><h1>Make today<br /><em>count.</em></h1><p className="muted">Small steps become a life.</p></div>
+        <nav><button className={view === 'today' ? 'nav-item active' : 'nav-item'} onClick={() => setView('today')}><CheckCircle2 size={18} /> Today <span>{doneCount}/{active.length}</span></button><button className={view === 'insights' ? 'nav-item active' : 'nav-item'} onClick={() => setView('insights')}><BarChart3 size={18} /> Insights</button><button className={view === 'archived' ? 'nav-item active' : 'nav-item'} onClick={() => setView('archived')}><Archive size={18} /> Archived <span>{archived.length}</span></button></nav>
+        <div className="sidebar-card"><Sparkles size={18} /><div><strong>Keep the chain alive</strong><p>Consistency beats intensity. You've got this.</p></div></div>
+        <p className="local-note"><Zap size={14} /> Private & local-first</p>
+      </aside>
+      <section className="content">
+        {view === 'today' && <TodayView goals={active} doneCount={doneCount} progress={progress} onAdd={() => setEditor({ mode: 'add' })} onEdit={goal => setEditor({ mode: 'edit', goal })} onOpen={setActiveGoal} onLog={updateLog} />}
+        {view === 'insights' && <Insights goals={active} onOpen={setActiveGoal} />}
+        {view === 'archived' && <ArchiveView goals={archived} onRestore={archiveGoal} onOpen={setActiveGoal} />}
+      </section>
+    </main>
+    {activeGoal && <GoalDetails goal={goals.find(goal => goal.id === activeGoal.id) || activeGoal} onClose={() => setActiveGoal(null)} onEdit={goal => { setActiveGoal(null); setEditor({ mode: 'edit', goal }); }} onArchive={archiveGoal} />}
+    {editor && <GoalEditor mode={editor.mode} goal={editor.goal} onClose={() => setEditor(null)} onSave={editor.mode === 'add' ? addGoal : editGoal} />}
+    {toast && <div className="toast"><Check size={16} /> {toast}</div>}
+  </div>;
+}
+
+function TodayView({ goals, doneCount, progress, onAdd, onEdit, onOpen, onLog }: { goals: Goal[]; doneCount: number; progress: number; onAdd: () => void; onEdit: (goal: Goal) => void; onOpen: (goal: Goal) => void; onLog: (goal: Goal, patch: Partial<Log>) => void }) {
+  const remaining = goals.length - doneCount;
+  return <><div className="page-heading"><div><p className="eyebrow">YOUR DAILY PRACTICE</p><h2>Today <span className="date-pill">{formatDay(today())}</span></h2><p className="muted">{remaining ? `${remaining} ${remaining === 1 ? 'goal' : 'goals'} left to make today count.` : 'Everything checked off. What a day.'}</p></div><button className="primary-btn" onClick={onAdd}><Plus size={18} /> New goal</button></div>
+    <div className="progress-panel"><div className="progress-copy"><div className="progress-ring" style={{ "--progress": `${progress}%` } as React.CSSProperties}><span>{progress}<small>%</small></span></div><div><strong>{doneCount} of {goals.length} complete</strong><p>Progress for today</p></div></div><div className="progress-bar"><i style={{ width: `${progress}%` }} /></div><span className="progress-spark">{progress === 100 ? 'Perfect day' : progress > 50 ? 'You’re on a roll' : 'Start small'}</span></div>
+    <div className="section-label"><span>DAILY GOALS</span><span>{goals.length} active</span></div>
+    {goals.length ? <div className="goal-list">{goals.map(goal => <GoalCard key={goal.id} goal={goal} onEdit={onEdit} onOpen={onOpen} onLog={onLog} />)}</div> : <EmptyState onAdd={onAdd} />}
+    <div className="quote"><Lightbulb size={19} /><span>“The secret of getting ahead is getting started.”</span><small>— Mark Twain</small></div>
+  </>;
+}
+
+function GoalCard({ goal, onEdit, onOpen, onLog }: { goal: Goal; onEdit: (goal: Goal) => void; onOpen: (goal: Goal) => void; onLog: (goal: Goal, patch: Partial<Log>) => void }) {
+  const log = getLog(goal) || { date: today(), done: false }; const stat = stats(goal); const [note, setNote] = useState(log.note || ''); const [showNote, setShowNote] = useState(Boolean(log.note));
+  useEffect(() => setNote(log.note || ''), [log.note]);
+  return <article className={`goal-card ${log.done ? 'completed' : ''}`} style={{ '--accent': goal.color } as React.CSSProperties}>
+    <div className="goal-main"><button aria-label={log.done ? 'Mark incomplete' : 'Mark complete'} className={`check-button ${log.done ? 'checked' : ''}`} onClick={() => onLog(goal, { done: !log.done })}>{log.done && <Check size={19} strokeWidth={3} />}</button><div className="goal-title"><div className="goal-title-row"><h3>{goal.title}</h3><span className={`type-tag ${goal.type}`}>{goal.type === 'timed' ? <Clock3 size={12} /> : <CheckCircle2 size={12} />}{goal.type === 'timed' ? 'Timed' : 'Checkbox'}</span></div><p>{goal.description || 'No description'}</p></div><button className="icon-btn more" onClick={() => onEdit(goal)} aria-label="Edit goal"><MoreHorizontal size={20} /></button></div>
+    <div className="goal-footer"><div className="mini-stats"><span><Flame size={14} /> <b>{stat.current}</b> day streak</span>{goal.type === 'timed' && <span><Clock3 size={14} /> <b>{stat.total}</b> min total</span>}</div><div className="card-actions">{goal.type === 'timed' && <DurationInput value={log.duration || 0} onChange={duration => onLog(goal, { duration, done: duration > 0 ? true : log.done })} />}{goal.type === 'checkbox' && <button className="note-toggle" onClick={() => setShowNote(value => !value)}>{showNote ? 'Hide note' : '+ Add note'}</button>}<button className="details-link" onClick={() => onOpen(goal)}>Details <ChevronRight size={15} /></button></div></div>
+    {goal.type === 'timed' && <div className="note-row"><button className="note-toggle" onClick={() => setShowNote(value => !value)}>{showNote ? 'Hide note' : '+ Add a note for today'}</button></div>}
+    {showNote && <div className="note-editor"><input value={note} placeholder="What did you do today?" onChange={event => setNote(event.target.value)} onBlur={() => onLog(goal, { note })} /><span>{note.length}/140</span></div>}
+  </article>;
+}
+
+function DurationInput({ value, onChange }: { value: number; onChange: (value: number) => void }) { const [editing, setEditing] = useState(false); return editing ? <div className="duration-edit"><input autoFocus type="number" min="0" max="999" defaultValue={value || ''} onBlur={event => { onChange(Number(event.target.value) || 0); setEditing(false); }} onKeyDown={event => { if (event.key === 'Enter') { onChange(Number(event.currentTarget.value) || 0); setEditing(false); } }} /><span>min</span></div> : <button className="duration-btn" onClick={() => setEditing(true)}><Clock3 size={15} /> {value ? `${value} min` : 'Log time'}</button>; }
+function EmptyState({ onAdd }: { onAdd: () => void }) { return <div className="empty"><div className="empty-icon"><Target size={25} /></div><h3>Set your first intention</h3><p>Choose one small thing to practice today. You can always add more later.</p><button className="primary-btn" onClick={onAdd}><Plus size={17} /> Add a goal</button></div>; }
+
+function Insights({ goals, onOpen }: { goals: Goal[]; onOpen: (goal: Goal) => void }) { const week = [...Array(7)].map((_, index) => { const date = new Date(); date.setDate(date.getDate() - 6 + index); const iso = date.toISOString().slice(0, 10); return { iso, label: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date).slice(0, 2) }; }); const totalLogs = goals.reduce((sum, goal) => sum + goal.logs.filter(log => log.done).length, 0); const best = Math.max(0, ...goals.map(goal => stats(goal).best)); return <><div className="page-heading"><div><p className="eyebrow">YOUR MOMENTUM</p><h2>Insights</h2><p className="muted">A little perspective on your consistency.</p></div></div><div className="insight-grid"><div className="insight-stat accent"><span><Flame size={18} /></span><strong>{best}</strong><label>Best streak <small>days</small></label></div><div className="insight-stat"><span><CheckCircle2 size={18} /></span><strong>{totalLogs}</strong><label>Goals completed <small>all time</small></label></div><div className="insight-stat"><span><Clock3 size={18} /></span><strong>{goals.reduce((s, g) => s + stats(g).total, 0)}</strong><label>Minutes invested <small>all time</small></label></div></div><div className="chart-panel"><div className="panel-head"><div><h3>Last 7 days</h3><p className="muted">Goals completed each day</p></div><BarChart3 size={19} /></div><div className="bar-chart">{week.map(day => { const count = goals.filter(goal => getLog(goal, day.iso)?.done).length; const height = goals.length ? Math.max(8, count / goals.length * 100) : 8; return <div className="bar-col" key={day.iso}><span>{count || ''}</span><div className="bar-track"><i style={{ height: `${height}%` }} /></div><label>{day.label}</label></div>; })}</div></div><div className="section-label"><span>GOAL BREAKDOWN</span></div><div className="goal-list compact-list">{goals.map(goal => { const stat = stats(goal); return <button className="breakdown" key={goal.id} onClick={() => onOpen(goal)}><span className="color-dot" style={{ background: goal.color }} /><span className="breakdown-title"><b>{goal.title}</b><small>{goal.type === 'timed' ? `${stat.total} minutes logged` : 'Checkbox goal'}</small></span><span className="breakdown-streak"><Flame size={14} /> {stat.current} current</span><ChevronRight size={17} /></button>; })}</div></>; }
+
+function ArchiveView({ goals, onRestore, onOpen }: { goals: Goal[]; onRestore: (goal: Goal) => void; onOpen: (goal: Goal) => void }) { return <><div className="page-heading"><div><p className="eyebrow">PAST PRACTICES</p><h2>Archived</h2><p className="muted">Goals you’ve set aside. Nothing is ever lost.</p></div></div>{goals.length ? <div className="goal-list">{goals.map(goal => <div className="archived-card" key={goal.id}><span className="color-dot" style={{ background: goal.color }} /><div><h3>{goal.title}</h3><p>{goal.description}</p></div><button className="secondary-btn" onClick={() => onRestore(goal)}><RotateCcw size={15} /> Restore</button><button className="icon-btn" onClick={() => onOpen(goal)}><ChevronRight size={18} /></button></div>)}</div> : <div className="empty"><div className="empty-icon"><Archive size={25} /></div><h3>No archived goals</h3><p>When a goal has run its course, you’ll find it here.</p></div>}</>; }
+
+function GoalDetails({ goal, onClose, onEdit, onArchive }: { goal: Goal; onClose: () => void; onEdit: (goal: Goal) => void; onArchive: (goal: Goal) => void }) { const stat = stats(goal); const logs = [...goal.logs].sort((a, b) => b.date.localeCompare(a.date)); return <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><div className="details-modal"><div className="modal-top"><button className="back-btn" onClick={onClose}><ArrowLeft size={17} /> Back</button><button className="icon-btn" onClick={() => onEdit(goal)}><Pencil size={17} /></button></div><div className="detail-hero"><span className="detail-dot" style={{ background: goal.color }} /><div><h2>{goal.title}</h2><p>{goal.description || 'No description'}</p></div></div><div className="detail-stats"><div><Flame size={17} /><strong>{stat.current}</strong><span>Current streak</span></div><div><Zap size={17} /><strong>{stat.best}</strong><span>Best streak</span></div>{goal.type === 'timed' && <div><Clock3 size={17} /><strong>{stat.total}</strong><span>Total minutes</span></div>}</div><div className="history-heading"><h3>History</h3><span>{logs.length} logged {logs.length === 1 ? 'day' : 'days'}</span></div>{logs.length ? <div className="history-list">{logs.map(log => <div className="history-row" key={log.date}><div className={`history-check ${log.done ? 'done' : ''}`}>{log.done && <Check size={13} />}</div><div><b>{formatDay(log.date)}</b>{log.note && <p>“{log.note}”</p>}</div>{log.duration ? <span className="history-time"><Clock3 size={13} /> {log.duration} min</span> : <span className="history-complete">Complete</span>}</div>)}</div> : <p className="history-empty">Your completed days and notes will appear here.</p>}<button className="archive-action" onClick={() => onArchive(goal)}>{goal.archived ? <><RotateCcw size={16} /> Restore goal</> : <><Archive size={16} /> Archive goal</>}</button></div></div>; }
+
+function GoalEditor({ mode, goal, onClose, onSave }: { mode: 'add' | 'edit'; goal?: Goal; onClose: () => void; onSave: (data: Omit<Goal, 'id' | 'createdAt' | 'archived' | 'logs'>) => void }) { const [title, setTitle] = useState(goal?.title || ''); const [description, setDescription] = useState(goal?.description || ''); const [type, setType] = useState<GoalType>(goal?.type || 'checkbox'); const [color, setColor] = useState(goal?.color || palette[Math.floor(Math.random() * palette.length)]); const submit = (event: React.FormEvent) => { event.preventDefault(); if (!title.trim()) return; onSave({ title: title.trim(), description: description.trim(), type, color }); }; return <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><form className="editor-modal" onSubmit={submit}><div className="modal-top"><div><p className="eyebrow">{mode === 'add' ? 'NEW PRACTICE' : 'EDIT PRACTICE'}</p><h2>{mode === 'add' ? 'What matters today?' : 'Tune your goal'}</h2></div><button type="button" className="icon-btn" onClick={onClose}><X size={19} /></button></div><label>Goal name<input autoFocus value={title} onChange={event => setTitle(event.target.value)} placeholder="e.g. Walk outside" maxLength={60} /></label><label>Description <span className="optional">optional</span><input value={description} onChange={event => setDescription(event.target.value)} placeholder="A short reminder of why it matters" maxLength={90} /></label><label>How do you want to track it?</label><div className="type-picker"><button type="button" className={type === 'checkbox' ? 'selected' : ''} onClick={() => setType('checkbox')}><CheckCircle2 size={20} /><b>Checkbox</b><small>Done or not done</small></button><button type="button" className={type === 'timed' ? 'selected' : ''} onClick={() => setType('timed')}><Clock3 size={20} /><b>Timed</b><small>Log minutes spent</small></button></div><label>Color</label><div className="color-picker">{palette.map(option => <button type="button" aria-label={`Choose ${option}`} key={option} className={color === option ? 'chosen' : ''} style={{ background: option }} onClick={() => setColor(option)} />)}</div><div className="form-actions"><button type="button" className="secondary-btn" onClick={onClose}>Cancel</button><button className="primary-btn" type="submit">{mode === 'add' ? <><Plus size={17} /> Add goal</> : <><Check size={17} /> Save changes</>}</button></div></form></div>; }
+
+export default App;
