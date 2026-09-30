@@ -1,7 +1,7 @@
 {
   "name": "Reign",
   "short_name": "Reign",
-  "description": "A private, local-first daily goals tracker.",
+  "description": "A daily goals tracker that helps small practices become momentum.",
   "start_url": "/Goal-tracker/",
   "scope": "/Goal-tracker/",
   "display": "standalone",
