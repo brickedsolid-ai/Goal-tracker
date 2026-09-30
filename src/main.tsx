@@ -14,6 +14,46 @@ type Goal = { id: string; title: string; description: string; type: GoalType; mi
 type RangeMode = 'last-month' | 'last-year';
 
 type DateRange = { start: string; end: string };
+type DailyCopy = { headline: string; accent: string; subline: string; quote: string; author: string };
+
+// Primary-text quotations with verifiable literary or historical sources.
+const DAILY_COPY: DailyCopy[] = [
+  { headline: 'Begin with', accent: 'what matters', subline: 'A clear first step changes the day.', quote: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
+  { headline: 'Make the', accent: 'next move', subline: 'Momentum starts smaller than you think.', quote: 'For the great doesn’t happen through impulse alone; it is a succession of little things that are brought together.', author: 'Vincent van Gogh' },
+  { headline: 'Choose your', accent: 'next right thing', subline: 'Attention turns intention into action.', quote: 'The readiness is all.', author: 'William Shakespeare' },
+  { headline: 'Keep faith with', accent: 'the process', subline: 'What you repeat becomes your rhythm.', quote: 'Our doubts are traitors, and make us lose the good we oft might win by fearing to attempt.', author: 'William Shakespeare' },
+  { headline: 'Build the day', accent: 'you want', subline: 'Small acts give shape to a life.', quote: 'The fault, dear Brutus, is not in our stars, but in ourselves, that we are underlings.', author: 'William Shakespeare' },
+  { headline: 'Start where', accent: 'your feet are', subline: 'Today is the only place progress happens.', quote: 'To strive, to seek, to find, and not to yield.', author: 'Alfred, Lord Tennyson' },
+  { headline: 'Make room for', accent: 'progress', subline: 'A little forward is still forward.', quote: 'The best way out is always through.', author: 'Robert Frost' },
+  { headline: 'Practice the', accent: 'promise', subline: 'Consistency gives effort a memory.', quote: 'Forever—is composed of Nows—', author: 'Emily Dickinson' },
+  { headline: 'Let the work', accent: 'compound', subline: 'Patient steps carry you farther.', quote: '“Hope” is the thing with feathers—That perches in the soul—', author: 'Emily Dickinson' },
+  { headline: 'Turn intention', accent: 'into motion', subline: 'One completed thing can change the tone.', quote: 'I’m not afraid of storms, for I’m learning how to sail my ship.', author: 'Louisa May Alcott' },
+  { headline: 'Stay with the', accent: 'becoming', subline: 'The work is allowed to take time.', quote: 'Nothing great was ever achieved without enthusiasm.', author: 'Ralph Waldo Emerson' },
+  { headline: 'Give today', accent: 'your attention', subline: 'Presence makes ordinary effort count.', quote: 'Act well your part; there all the honour lies.', author: 'Alexander Pope' },
+  { headline: 'Rise to the', accent: 'next attempt', subline: 'A steady return is its own kind of strength.', quote: 'Our greatest glory is, not in never falling, but in rising every time we fall.', author: 'Oliver Goldsmith' },
+  { headline: 'Take the', accent: 'first step', subline: 'A journey becomes real when you begin.', quote: 'A journey of a thousand miles begins with a single step.', author: 'Laozi' },
+  { headline: 'Honor the', accent: 'beginning', subline: 'Starting well gives the day direction.', quote: 'The beginning is thought to be more than half of the whole.', author: 'Aristotle' },
+  { headline: 'Shape the', accent: 'moment', subline: 'The day is built from what you choose now.', quote: 'We are such stuff as dreams are made on.', author: 'William Shakespeare' },
+];
+
+function dailyCopyFor(date: string) {
+  const seed = Number(date.replace(/-/g, ''));
+  return DAILY_COPY[seed % DAILY_COPY.length];
+}
+function useDailyCopy() {
+  const [dateKey, setDateKey] = useState(today());
+  useEffect(() => {
+    let timer: number;
+    const schedule = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      timer = window.setTimeout(() => { setDateKey(today()); schedule(); }, nextMidnight.getTime() - now.getTime() + 10);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, []);
+  return dailyCopyFor(dateKey);
+}
 const palette = ['#C8102E', '#8C0B20', '#D4AF37', '#DC143C', '#5E0E1D'];
 const pad = (value: number) => String(value).padStart(2, '0');
 const isoDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -72,6 +112,7 @@ function rangeMetrics(goals: Goal[], range: DateRange) {
 function initials(text: string) { return text.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase(); }
 
 function App() {
+  const dailyCopy = useDailyCopy();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<'today' | 'calendar' | 'insights' | 'archived'>('today');
@@ -106,13 +147,13 @@ function App() {
     <header className="topbar"><div className="brand"><div className="brand-mark"><Crown size={21} strokeWidth={2.2} /></div><span>Reign</span></div><div className="topbar-date"><CalendarDays size={16} /> {formatDay(today())}</div><div className="avatar">{initials('Bricked Solid')}</div></header>
     <main className="layout">
       <aside className="sidebar">
-        <div className="hello"><p className="eyebrow">{formatDay(today()).toUpperCase()}</p><h1>Make today<br /><em>count.</em></h1><p className="muted">Small steps become a life.</p></div>
+        <div className="hello"><p className="eyebrow">{formatDay(today()).toUpperCase()}</p><h1>{dailyCopy.headline}<br /><em>{dailyCopy.accent}.</em></h1><p className="muted">{dailyCopy.subline}</p></div>
         <nav><button className={view === 'today' ? 'nav-item active' : 'nav-item'} onClick={() => setView('today')}><CheckCircle2 size={18} /> Today <span>{doneCount}/{active.length}</span></button><button className={view === 'calendar' ? 'nav-item active' : 'nav-item'} onClick={() => setView('calendar')}><CalendarDays size={18} /> Calendar</button><button className={view === 'insights' ? 'nav-item active' : 'nav-item'} onClick={() => setView('insights')}><BarChart3 size={18} /> Insights</button></nav>
         <button className={view === 'archived' ? 'archive-link active' : 'archive-link'} onClick={() => setView('archived')}><Archive size={15} /> Archived <span>{archived.length}</span></button>
         <div className="sidebar-card"><Sparkles size={18} /><div><strong>Keep the chain alive</strong><p>Consistency beats intensity. You've got this.</p></div></div>
       </aside>
       <section className="content">
-        {view === 'today' && <TodayView goals={active} doneCount={doneCount} progress={progress} onAdd={() => setEditor({ mode: 'add' })} onEdit={goal => setEditor({ mode: 'edit', goal })} onOpen={setActiveGoal} onLog={updateLog} />}
+        {view === 'today' && <TodayView goals={active} doneCount={doneCount} progress={progress} dailyCopy={dailyCopy} onAdd={() => setEditor({ mode: 'add' })} onEdit={goal => setEditor({ mode: 'edit', goal })} onOpen={setActiveGoal} onLog={updateLog} />}
         {view === 'calendar' && <CalendarView goals={active} onOpen={setActiveGoal} />}
         {view === 'insights' && <Insights goals={active} onOpen={setActiveGoal} />}
         {view === 'archived' && <ArchiveView goals={archived} onRestore={archiveGoal} onOpen={setActiveGoal} />}
@@ -124,13 +165,13 @@ function App() {
   </div>;
 }
 
-function TodayView({ goals, doneCount, progress, onAdd, onEdit, onOpen, onLog }: { goals: Goal[]; doneCount: number; progress: number; onAdd: () => void; onEdit: (goal: Goal) => void; onOpen: (goal: Goal) => void; onLog: (goal: Goal, patch: Partial<Log>) => void }) {
+function TodayView({ goals, doneCount, progress, dailyCopy, onAdd, onEdit, onOpen, onLog }: { goals: Goal[]; doneCount: number; progress: number; dailyCopy: DailyCopy; onAdd: () => void; onEdit: (goal: Goal) => void; onOpen: (goal: Goal) => void; onLog: (goal: Goal, patch: Partial<Log>) => void }) {
   const remaining = goals.length - doneCount;
-  return <><div className="page-heading"><div><p className="eyebrow">YOUR DAILY PRACTICE</p><h2>Today <span className="date-pill">{formatDay(today())}</span></h2><p className="muted">{remaining ? `${remaining} ${remaining === 1 ? 'goal' : 'goals'} left to make today count.` : 'Everything checked off. What a day.'}</p></div><button className="primary-btn" onClick={onAdd}><Plus size={18} /> New goal</button></div>
+  return <><div className="page-heading"><div><p className="eyebrow">YOUR DAILY PRACTICE</p><h2>Today <span className="date-pill">{formatDay(today())}</span></h2><p className="muted">{remaining ? `${remaining} ${remaining === 1 ? 'goal' : 'goals'} left in your practice today.` : 'Everything checked off. What a day.'}</p></div><button className="primary-btn" onClick={onAdd}><Plus size={18} /> New goal</button></div>
     <div className="progress-panel"><div className="progress-copy"><div className="progress-ring" style={{ '--progress': `${progress}%` } as React.CSSProperties}><span>{progress}<small>%</small></span></div><div><strong>{doneCount} of {goals.length} complete</strong><p>Progress for today</p></div></div><div className="progress-bar"><i style={{ width: `${progress}%` }} /></div><span className="progress-spark">{progress === 100 ? 'Perfect day' : progress > 50 ? 'You’re on a roll' : 'Start small'}</span></div>
     <div className="section-label"><span>DAILY GOALS</span><span>{goals.length} active</span></div>
     {goals.length ? <div className="goal-list">{goals.map(goal => <GoalCard key={goal.id} goal={goal} onEdit={onEdit} onOpen={onOpen} onLog={onLog} />)}</div> : <EmptyState onAdd={onAdd} />}
-    <div className="quote"><Lightbulb size={19} /><span>“The secret of getting ahead is getting started.”</span><small>— Mark Twain</small></div>
+    <div className="quote"><Lightbulb size={19} /><span>“{dailyCopy.quote}”</span><small>— {dailyCopy.author}</small></div>
   </>;
 }
 
@@ -169,5 +210,5 @@ function GoalDetails({ goal, onClose, onEdit, onArchive }: { goal: Goal; onClose
 
 function GoalEditor({ mode, goal, onClose, onSave }: { mode: 'add' | 'edit'; goal?: Goal; onClose: () => void; onSave: (data: Omit<Goal, 'id' | 'createdAt' | 'archived' | 'logs'>) => void }) { const [title, setTitle] = useState(goal?.title || ''); const [description, setDescription] = useState(goal?.description || ''); const [type, setType] = useState<GoalType>(goal?.type || 'checkbox'); const [minuteCredit, setMinuteCredit] = useState(String(goal?.minuteCredit ?? '')); const [color, setColor] = useState(goal?.color || palette[Math.floor(Math.random() * palette.length)]); const submit = (event: React.FormEvent) => { event.preventDefault(); if (!title.trim()) return; const minutes = Math.min(1440, Math.max(0, Math.round(Number(minuteCredit) || 0))); onSave({ title: title.trim(), description: description.trim(), type, minuteCredit: type === 'checkbox' ? minutes : undefined, color }); }; return <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><form className="editor-modal" onSubmit={submit}><div className="modal-top"><div><p className="eyebrow">{mode === 'add' ? 'NEW PRACTICE' : 'EDIT PRACTICE'}</p><h2>{mode === 'add' ? 'What matters today?' : 'Tune your goal'}</h2></div><button type="button" className="icon-btn" onClick={onClose}><X size={19} /></button></div><label>Goal name<input autoFocus value={title} onChange={event => setTitle(event.target.value)} placeholder="e.g. Walk outside" maxLength={60} /></label><label>Description <span className="optional">optional</span><input value={description} onChange={event => setDescription(event.target.value)} placeholder="A short reminder of why it matters" maxLength={90} /></label><label>How do you want to track it?</label><div className="type-picker"><button type="button" className={type === 'checkbox' ? 'selected' : ''} onClick={() => setType('checkbox')}><CheckCircle2 size={20} /><b>Checkbox</b><small>Done or not done</small></button><button type="button" className={type === 'timed' ? 'selected' : ''} onClick={() => setType('timed')}><Clock3 size={20} /><b>Timed</b><small>Log minutes spent</small></button></div>{type === 'checkbox' && <label className="minute-field">Minutes credited when checked<input type="number" min="0" max="1440" value={minuteCredit} onChange={event => setMinuteCredit(event.target.value)} placeholder="e.g. 10" /><small>Every completed day adds this fixed amount to your totals.</small></label>}<label>Color</label><div className="color-picker">{palette.map(option => <button type="button" aria-label={`Choose ${option}`} key={option} className={color === option ? 'chosen' : ''} style={{ background: option }} onClick={() => setColor(option)} />)}</div><div className="form-actions"><button type="button" className="secondary-btn" onClick={onClose}>Cancel</button><button className="primary-btn" type="submit">{mode === 'add' ? <><Plus size={17} /> Add goal</> : <><Check size={17} /> Save changes</>}</button></div></form></div>; }
 
-if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('/Goal-tracker/sw.js', { scope: '/Goal-tracker/' }).catch(() => undefined); });
+if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('/Goal-tracker/sw.js', { scope: '/Goal-tracker/', updateViaCache: 'none' }).catch(() => undefined); });
 createRoot(document.getElementById('root')!).render(<App />);

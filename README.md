@@ -1,5 +1,5 @@
 # Reign - Daily goals tracker
-A local-first daily goals tracker built with Vite, React, and TypeScript.
+A daily goals tracker built with Vite, React, and TypeScript.
 
 ## Features
 - Create, edit, archive, and restore daily goals
