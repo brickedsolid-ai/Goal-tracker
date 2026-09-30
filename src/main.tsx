@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { openDB } from 'idb';
 import {
   Archive, ArrowLeft, BarChart3, CalendarDays, Check, CheckCircle2, ChevronRight,
-  Clock3, Flame, History, Lightbulb, MoreHorizontal, Pencil, Plus, RotateCcw,
+  Clock3, Crown, Flame, History, Lightbulb, MoreHorizontal, Pencil, Plus, RotateCcw,
   Sparkles, Target, Trash2, X, Zap
 } from 'lucide-react';
 import './styles.css';
@@ -12,7 +12,7 @@ type GoalType = 'checkbox' | 'timed';
 type Log = { date: string; done: boolean; duration?: number; note?: string };
 type Goal = { id: string; title: string; description: string; type: GoalType; color: string; createdAt: string; archived: boolean; logs: Log[] };
 
-const palette = ['#9B1B30', '#7A1428', '#C9A45C', '#A52239', '#5E0E1D'];
+const palette = ['#C8102E', '#8C0B20', '#D4AF37', '#DC143C', '#5E0E1D'];
 const today = () => new Date().toISOString().slice(0, 10);
 const formatDay = (iso: string) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${iso}T12:00:00`));
 const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -61,10 +61,10 @@ function App() {
 
   if (!loaded) return <div className="loading"><div className="brand-mark"><Target size={22} /></div><span>Loading your day…</span></div>;
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><div className="brand-mark"><Target size={21} strokeWidth={2.5} /></div><span>daymark</span></div><div className="topbar-date"><CalendarDays size={16} /> {formatDay(today())}</div><div className="avatar">BS</div></header>
+    <header className="topbar"><div className="brand"><div className="brand-mark"><Crown size={21} strokeWidth={2.2} /></div><span>Reign</span></div><div className="topbar-date"><CalendarDays size={16} /> {formatDay(today())}</div><div className="avatar">BS</div></header>
     <main className="layout">
       <aside className="sidebar">
-        <div className="hello"><p className="eyebrow">SATURDAY, SEPTEMBER 5</p><h1>Make today<br /><em>count.</em></h1><p className="muted">Small steps become a life.</p></div>
+        <div className="hello"><p className="eyebrow">{formatDay(today()).toUpperCase()}</p><h1>Make today<br /><em>count.</em></h1><p className="muted">Small steps become a life.</p></div>
         <nav><button className={view === 'today' ? 'nav-item active' : 'nav-item'} onClick={() => setView('today')}><CheckCircle2 size={18} /> Today <span>{doneCount}/{active.length}</span></button><button className={view === 'insights' ? 'nav-item active' : 'nav-item'} onClick={() => setView('insights')}><BarChart3 size={18} /> Insights</button><button className={view === 'archived' ? 'nav-item active' : 'nav-item'} onClick={() => setView('archived')}><Archive size={18} /> Archived <span>{archived.length}</span></button></nav>
         <div className="sidebar-card"><Sparkles size={18} /><div><strong>Keep the chain alive</strong><p>Consistency beats intensity. You've got this.</p></div></div>
         <p className="local-note"><Zap size={14} /> Private & local-first</p>

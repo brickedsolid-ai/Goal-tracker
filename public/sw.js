@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daymark-v1';
+const CACHE_NAME = 'reign-v2';
 const APP_SHELL = [
   '/Goal-tracker/',
   '/Goal-tracker/index.html',

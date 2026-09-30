@@ -1,6 +1,6 @@
 {
-  "name": "Daymark",
-  "short_name": "Daymark",
+  "name": "Reign",
+  "short_name": "Reign",
   "description": "A private, local-first daily goals tracker.",
   "start_url": "/Goal-tracker/",
   "scope": "/Goal-tracker/",

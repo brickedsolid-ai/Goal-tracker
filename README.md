@@ -1,4 +1,4 @@
-# Daymark - Daily goals tracker
+# Reign - Daily goals tracker
 A local-first daily goals tracker built with Vite, React, and TypeScript.
 
 ## Features
