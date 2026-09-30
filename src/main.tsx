@@ -26,7 +26,7 @@ const DAILY_COPY: DailyCopy[] = [
   { headline: 'Start where', accent: 'your feet are', subline: 'Today is the only place progress happens.', quote: 'To strive, to seek, to find, and not to yield.', author: 'Alfred, Lord Tennyson' },
   { headline: 'Make room for', accent: 'progress', subline: 'A little forward is still forward.', quote: 'The best way out is always through.', author: 'Robert Frost' },
   { headline: 'Practice the', accent: 'promise', subline: 'Consistency gives effort a memory.', quote: 'Forever—is composed of Nows—', author: 'Emily Dickinson' },
-  { headline: 'Let the work', accent: 'compound', subline: 'Patient steps carry you farther.', quote: '“Hope” is the thing with feathers—That perches in the soul—', author: 'Emily Dickinson' },
+  { headline: 'Let the work', accent: 'compound', subline: 'Patient steps carry you farther.', quote: 'Hope is the thing with feathers—That perches in the soul—', author: 'Emily Dickinson' },
   { headline: 'Turn intention', accent: 'into motion', subline: 'One completed thing can change the tone.', quote: 'I’m not afraid of storms, for I’m learning how to sail my ship.', author: 'Louisa May Alcott' },
   { headline: 'Stay with the', accent: 'becoming', subline: 'The work is allowed to take time.', quote: 'Nothing great was ever achieved without enthusiasm.', author: 'Ralph Waldo Emerson' },
   { headline: 'Give today', accent: 'your attention', subline: 'Presence makes ordinary effort count.', quote: 'Act well your part; there all the honour lies.', author: 'Alexander Pope' },
