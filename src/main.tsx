@@ -107,9 +107,9 @@ function App() {
     <main className="layout">
       <aside className="sidebar">
         <div className="hello"><p className="eyebrow">{formatDay(today()).toUpperCase()}</p><h1>Make today<br /><em>count.</em></h1><p className="muted">Small steps become a life.</p></div>
-        <nav><button className={view === 'today' ? 'nav-item active' : 'nav-item'} onClick={() => setView('today')}><CheckCircle2 size={18} /> Today <span>{doneCount}/{active.length}</span></button><button className={view === 'calendar' ? 'nav-item active' : 'nav-item'} onClick={() => setView('calendar')}><CalendarDays size={18} /> Calendar</button><button className={view === 'insights' ? 'nav-item active' : 'nav-item'} onClick={() => setView('insights')}><BarChart3 size={18} /> Insights</button><button className={view === 'archived' ? 'nav-item active' : 'nav-item'} onClick={() => setView('archived')}><Archive size={18} /> Archived <span>{archived.length}</span></button></nav>
+        <nav><button className={view === 'today' ? 'nav-item active' : 'nav-item'} onClick={() => setView('today')}><CheckCircle2 size={18} /> Today <span>{doneCount}/{active.length}</span></button><button className={view === 'calendar' ? 'nav-item active' : 'nav-item'} onClick={() => setView('calendar')}><CalendarDays size={18} /> Calendar</button><button className={view === 'insights' ? 'nav-item active' : 'nav-item'} onClick={() => setView('insights')}><BarChart3 size={18} /> Insights</button></nav>
+        <button className={view === 'archived' ? 'archive-link active' : 'archive-link'} onClick={() => setView('archived')}><Archive size={15} /> Archived <span>{archived.length}</span></button>
         <div className="sidebar-card"><Sparkles size={18} /><div><strong>Keep the chain alive</strong><p>Consistency beats intensity. You've got this.</p></div></div>
-        <p className="local-note"><Zap size={14} /> Private & local-first</p>
       </aside>
       <section className="content">
         {view === 'today' && <TodayView goals={active} doneCount={doneCount} progress={progress} onAdd={() => setEditor({ mode: 'add' })} onEdit={goal => setEditor({ mode: 'edit', goal })} onOpen={setActiveGoal} onLog={updateLog} />}
